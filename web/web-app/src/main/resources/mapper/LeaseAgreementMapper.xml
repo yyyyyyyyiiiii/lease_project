@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gy.lease.web.app.mapper.LeaseAgreementMapper">
+       <resultMap id="agreementitemVo" type="com.gy.lease.web.app.vo.agreement.AgreementItemVo" autoMapping="true">
+              <id property="id" column="id"/>
+              <collection property="roomGraphVoList" column="room_id" select="graph" ofType="com.gy.lease.web.app.vo.graph.GraphVo" autoMapping="true">
+
+              </collection>
+       </resultMap>
+
+    <select id="listByName" resultMap="agreementitemVo">
+        select la.id,
+               la.phone,
+               la.name,
+               la.identification_number,
+               la.apartment_id,
+               la.room_id,
+               la.lease_start_date,
+               la.lease_end_date,
+               la.lease_term_id,
+               la.rent,
+               la.deposit,
+               la.payment_type_id,
+               la.status as lease_status,
+               la.source_type,
+               la.additional_info,
+               ai.id as apartment_id,
+               ai.name as apartment_name,
+               ri.room_number,
+               ri.rent
+        from lease_agreement la
+                 left join apartment_info ai on ai.id = la.apartment_id and ai.is_deleted = 0
+                 left join room_info ri on ri.id = la.room_id and ri.is_deleted = 0 and ri.is_release = 1
+        where la.is_deleted = 0
+          and la.phone = #{phone}
+    </select>
+
+       <select id="graph" resultType="com.gy.lease.web.app.vo.graph.GraphVo">
+           select id,
+                  name,
+                  item_type,
+                  item_id,
+                  url
+           from graph_info
+           where item_type = 2
+             and item_id = #{room_id} and is_deleted = 0
+       </select>
+</mapper>

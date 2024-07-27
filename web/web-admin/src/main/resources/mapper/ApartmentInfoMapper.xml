@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gy.lease.web.admin.mapper.ApartmentInfoMapper">
+
+
+    <select id="page" resultType="com.gy.lease.web.admin.vo.apartment.ApartmentItemVo">
+        select info.id,
+               info.name,
+               info.introduction,
+               info.district_id,
+               info.district_name,
+               info.city_id,
+               info.city_name,
+               info.province_id,
+               info.province_name,
+               info.address_detail,
+               info.latitude,
+               info.longitude,
+               info.phone,
+               info.is_release,
+               ifnull(roomInfo.cnt,0) total_room_count,
+               ifnull(roomInfo.cnt,0) - ifnull(leaseInfo.cnt,0) free_room_count
+            from (
+                select id, name, introduction, district_id, district_name, city_id, city_name, province_id, province_name, address_detail, latitude, longitude, phone, is_release
+                from apartment_info
+                <where>
+                    is_deleted = 0
+                    <if test="queryVo.provinceId != null">
+                        and province_id = #{quryVo.provinceId}
+                    </if>
+                    <if test="queryVo.cityId != null">
+                        and city_id = #{quryVo.cityId}
+                    </if>
+                    <if test="queryVo.districtId != null">
+                        and district_id = #{quryVo.districtId}
+                    </if>
+                </where>
+                 ) as info left join (
+                     select apartment_id,count(*) cnt
+                     from room_info
+                     where  is_deleted = 0
+                     and is_release = 1
+                     group by apartment_id
+        ) roomInfo on roomInfo.apartment_id = info.id
+        left join (select apartment_id,count(*) cnt
+                   from lease_agreement
+                   where is_deleted = 0
+                   and status in (2,5)
+                   group by apartment_id
+                   ) leaseInfo
+        on info.id = leaseInfo.apartment_id
+    </select>
+
+    <select id="selectByRoom" resultType="com.gy.lease.model.entity.ApartmentInfo">
+        select id,
+               name,
+               introduction,
+               district_id,
+               district_name,
+               city_id,
+               city_name,
+               province_id,
+               province_name,
+               address_detail,
+               latitude,
+               longitude,
+               phone,
+               is_release
+        from apartment_info ai
+        where id in (select apartment_id
+                     from room_info ri
+                     where ri.id = #{id}
+                       and ri.is_deleted = 0)
+          and is_deleted = 0
+    </select>
+</mapper>

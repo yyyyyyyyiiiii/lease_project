@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gy.lease.web.app.mapper.PaymentTypeMapper">
+
+    <select id="selectByRoomId" resultType="com.gy.lease.model.entity.PaymentType">
+        select id, name, pay_month_count, additional_info
+        from payment_type
+        where is_deleted = 0
+          and id in (select payment_type_id
+                     from room_payment_type
+                     where is_deleted = 0
+                       and room_id = #{id})
+
+    </select>
+    <select id="listByRoomId" resultType="com.gy.lease.model.entity.PaymentType">
+        select pt.id,
+               pt.name,
+               pt.pay_month_count,
+               pt.additional_info
+        from payment_type pt
+                 left join lease_agreement la on pt.id = la.payment_type_id and la.is_deleted = 0
+        where pt.is_deleted = 0 and la.room_id = #{id}
+    </select>
+</mapper>

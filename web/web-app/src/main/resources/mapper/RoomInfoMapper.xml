@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gy.lease.web.app.mapper.RoomInfoMapper">
+
+    <resultMap id="RoomItemVo" type="com.gy.lease.web.app.vo.room.RoomItemVo" autoMapping="true">
+        <id property="id" column="id"/>
+        <association property="apartmentInfo" javaType="com.gy.lease.model.entity.ApartmentInfo" autoMapping="true">
+            <id property="id" column="apartment_id"/>
+        </association>
+        <collection property="graphVoList" ofType="com.gy.lease.web.app.vo.graph.GraphVo" select="getGraphList" column="id" autoMapping="true">
+
+        </collection>
+        <collection property="labelInfoList" ofType="com.gy.lease.model.entity.LabelInfo" select="getLabelInfoList" column="id" autoMapping="true">
+
+        </collection>
+     </resultMap>
+
+    <select id="pageRoom" resultMap="RoomItemVo">
+        select ri.id,
+               ri.room_number,
+               ri.rent,
+               ri.apartment_id,
+               ri.is_release,
+               ai.id as apartment_id,
+               ai.name,
+               ai.introduction,
+               ai.district_id,
+               ai.district_name,
+               ai.city_id,
+               ai.city_name,
+               ai.province_id,
+               ai.province_name,
+               ai.address_detail,
+               ai.latitude,
+               ai.longitude,
+               ai.phone,
+               ai.is_release
+        from room_info ri
+                 left join apartment_info ai on apartment_id = ai.id and ai.is_deleted = 0
+        <where>
+             ri.is_deleted = 0
+            and ri.is_release = 1
+            and ri.id not in (select room_id
+            from lease_agreement
+            where is_deleted = 0
+            and status in (2, 5))
+            <if test="queryVo.provinceId != null">
+                and ai.province_id = #{queryVo.provinceId}
+            </if>
+            <if test="queryVo.cityId != null">
+                and ai.city_id = #{queryVo.cityId}
+            </if>
+            <if test="queryVo.districtId != null">
+            and ai.district_id = #{queryVo.districtId}
+            </if>
+        <if test="queryVo.maxRent != null and queryVo.minRent !=null">
+            and (ri.rent &gt; = #{queryVo.minRent} and ri.rent &lt; = #{queryVo.maxRent})
+        </if>
+        <if test="queryVo.paymentTypeId !=null">
+            and ri.id in(
+            select room_id
+            from room_payment_type
+            where is_deleted = 0
+            and pay_ment_type.id = #{queryVo.paymentTypeId}
+            )
+        </if>
+        </where>
+        <if test="queryVo.orderType == 'desc' or queryVo.orderType == 'asc'">
+            order by ri.rent ${queryVo.orderType}
+        </if>
+    </select>
+
+    <select id="getGraphList" resultType="com.gy.lease.web.app.vo.graph.GraphVo">
+        select name,
+               url
+        from graph_info
+        where is_deleted = 0
+          and item_type = 2
+          and item_id = #{id}
+    </select>
+
+    <select id="getLabelInfoList" resultType="com.gy.lease.model.entity.LabelInfo">
+        select  type, name
+        from label_info
+        where is_deleted = 0
+          and id in (select label_id
+                     from room_label
+                     where is_deleted = 0
+                       and room_id = #{id})
+    </select>
+    <select id="selectMinRentByApartmentId" resultType="java.math.BigDecimal">
+        select min(rent)
+        from room_info
+        where is_deleted = 0
+          and is_release = 1
+          and apartment_id = #{apartmentId}
+    </select>
+    <select id="pageByApartmentId" resultMap="RoomItemVo">
+        select ri.id,
+        ri.room_number,
+        ri.rent,
+        ri.apartment_id,
+        ri.is_release,
+        ai.id as apartment_id,
+        ai.name,
+        ai.introduction,
+        ai.district_id,
+        ai.district_name,
+        ai.city_id,
+        ai.city_name,
+        ai.province_id,
+        ai.province_name,
+        ai.address_detail,
+        ai.latitude,
+        ai.longitude,
+        ai.phone,
+        ai.is_release
+        from room_info ri
+        left join apartment_info ai on apartment_id = ai.id and ai.is_deleted = 0
+        where
+            ri.apartment_id = #{id}
+            and ri.is_deleted = 0
+            and ri.is_release = 1
+            and ri.id not in (select room_id
+            from lease_agreement
+            where is_deleted = 0
+            and status in (2, 5))
+    </select>
+</mapper>
